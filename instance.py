@@ -1,7 +1,7 @@
 import boto3
 
 
-class Aws:
+class Instance:
     region = "eu-central-1"
 
     def __init__(self, image_id="", instance_type="", min_count=1, max_count=1, tags=None, tenant=""):
@@ -36,5 +36,7 @@ class Aws:
                 }]
             }]
         )
+        for instance in instances:
+            instance.wait_until_running()
         instance_ids = [i.id for i in instances]
         return {'instances': instance_ids, 'private_key': private_key}
