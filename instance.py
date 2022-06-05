@@ -3,6 +3,7 @@ import boto3
 
 class Instance:
     region = "eu-central-1"
+    ec2 = boto3.client('ec2', region_name=region)
 
     def __init__(self, image_id="", instance_type="", min_count=1, max_count=1, tags=None, tenant=""):
         self.tenant = tenant
@@ -15,9 +16,30 @@ class Instance:
         self.image_id = image_id
 
     def create_key_pair(self):
-        ec2 = boto3.client('ec2', region_name=self.region)
-        response = ec2.create_key_pair(KeyName=self.tenant)
+        response = self.ec2.create_key_pair(KeyName=self.tenant)
         return response['KeyMaterial']
+
+    def get_vpc(self):
+        response = self.ec2.describe_vpcs()
+        vpc_id = response.get('Vpcs', [{}])[0].get('VpcId', '')
+
+    def create_security_group(self, ports=[80]):
+        self.ec2.create_security_group(
+            Description=f"Security group for {self.tenant} tenant EC2 instance",
+            GroupName=f"{self.tenant}-sg",
+            VpcId='string',
+            TagSpecifications=[
+                {
+                    'ResourceType': 'security-group',
+                    'Tags': [
+                        {
+                            'Key': 'tenant',
+                            'Value': self.tenant
+                        },
+                    ]
+                },
+            ]
+        )
 
     def create_instances(self):
         private_key = self.create_key_pair()
